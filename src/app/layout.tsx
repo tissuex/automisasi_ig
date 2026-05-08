@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "IG Auto-Poster | Dashboard",
+  title: "Sistem Otomatis Posting Instagram",
   description:
     "Dashboard otomatis untuk menjadwalkan dan posting konten Instagram dari Google Drive.",
 };

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { extractGDriveId } from "@/lib/gdrive/utils";
+import { getAuthClient } from "@/lib/supabase/auth-client";
 
-// ─── Types ────────────────────────────────────────────────────
+// --- Types ---
 
 interface Schedule {
   id: string;
@@ -59,22 +61,36 @@ function relativeTime(iso: string): string {
   }
 }
 
-const STATUS_ICONS: Record<string, string> = {
-  pending: "⏳",
-  processing: "⚙️",
-  posted: "✅",
-  failed: "❌",
-  success: "✅",
-  error: "❌",
-};
+// --- SVG Icons ---
 
-const MEDIA_ICONS: Record<string, string> = {
-  IMAGE: "🖼️",
-  VIDEO: "🎬",
-  CAROUSEL: "📸",
-};
+function IconCamera() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
 
-// ─── Toast Component ──────────────────────────────────────────
+function IconEdit() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+// --- Toast Component ---
 
 function Toast({
   message,
@@ -92,25 +108,36 @@ function Toast({
 
   return (
     <div className={`toast ${type}`}>
-      {type === "success" ? "✅" : "❌"} {message}
+      {message}
     </div>
   );
 }
 
-// ─── Create Schedule Modal ────────────────────────────────────
+// --- Schedule Form Modal ---
 
-function CreateModal({
+function ScheduleModal({
+  schedule,
   onClose,
-  onCreated,
+  onSaved,
 }: {
+  schedule?: Schedule;
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
 }) {
+  const isEditing = !!schedule;
+
+  const toLocalDatetime = (iso: string) => {
+    const d = new Date(iso);
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
   const [form, setForm] = useState({
-    gdrive_file_id: "",
-    media_type: "IMAGE",
-    caption: "",
-    scheduled_at: "",
+    gdrive_file_id: schedule?.gdrive_file_id ?? "",
+    media_type: schedule?.media_type ?? "IMAGE",
+    caption: schedule?.caption ?? "",
+    scheduled_at: schedule ? toLocalDatetime(schedule.scheduled_at) : "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -121,8 +148,13 @@ function CreateModal({
     setError("");
 
     try {
-      const res = await fetch("/api/schedules", {
-        method: "POST",
+      const url = isEditing
+        ? `/api/schedules/${schedule.id}`
+        : "/api/schedules";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
@@ -133,13 +165,14 @@ function CreateModal({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Gagal membuat jadwal");
+        throw new Error(data.error || "Gagal menyimpan jadwal");
       }
 
-      onCreated();
+      onSaved();
       onClose();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -148,16 +181,20 @@ function CreateModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal-title">📅 Buat Jadwal Baru</h2>
+        <h2 className="modal-title">
+          {isEditing ? "Edit Jadwal" : "Buat Jadwal Baru"}
+        </h2>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label" htmlFor="gdrive_file_id">Google Drive File ID / URL</label>
+            <label className="form-label" htmlFor="modal-gdrive">
+              Google Drive File ID / URL
+            </label>
             <input
-              id="gdrive_file_id"
+              id="modal-gdrive"
               className="form-input"
               type="text"
-              placeholder="Paste URL atau File ID — otomatis diekstrak"
+              placeholder="Paste URL atau File ID"
               value={form.gdrive_file_id}
               onChange={(e) =>
                 setForm({ ...form, gdrive_file_id: extractGDriveId(e.target.value) })
@@ -165,30 +202,34 @@ function CreateModal({
               required
             />
             <p className="form-hint">
-              Paste langsung URL Google Drive (misal: https://drive.google.com/file/d/<strong>FILE_ID</strong>/view) — ID otomatis diekstrak
+              Paste URL Google Drive — ID otomatis diekstrak
             </p>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="media_type">Tipe Media</label>
+            <label className="form-label" htmlFor="modal-media-type">
+              Tipe Media
+            </label>
             <select
-              id="media_type"
+              id="modal-media-type"
               className="form-select"
               value={form.media_type}
               onChange={(e) =>
-                setForm({ ...form, media_type: e.target.value })
+                setForm({ ...form, media_type: e.target.value as "IMAGE" | "VIDEO" | "CAROUSEL" })
               }
             >
-              <option value="IMAGE">🖼️ Image</option>
-              <option value="VIDEO">🎬 Video / Reels</option>
-              <option value="CAROUSEL">📸 Carousel</option>
+              <option value="IMAGE">Image</option>
+              <option value="VIDEO">Video / Reels</option>
+              <option value="CAROUSEL">Carousel</option>
             </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="caption">Caption</label>
+            <label className="form-label" htmlFor="modal-caption">
+              Caption
+            </label>
             <textarea
-              id="caption"
+              id="modal-caption"
               className="form-textarea"
               placeholder="Tulis caption posting..."
               value={form.caption}
@@ -199,9 +240,11 @@ function CreateModal({
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="scheduled_at">Jadwal Posting</label>
+            <label className="form-label" htmlFor="modal-scheduled-at">
+              Jadwal Posting
+            </label>
             <input
-              id="scheduled_at"
+              id="modal-scheduled-at"
               className="form-input"
               type="datetime-local"
               value={form.scheduled_at}
@@ -214,7 +257,7 @@ function CreateModal({
 
           {error && (
             <p style={{ color: "var(--status-failed)", fontSize: 13, marginBottom: 12 }}>
-              ❌ {error}
+              {error}
             </p>
           )}
 
@@ -227,8 +270,10 @@ function CreateModal({
                 <>
                   <span className="spinner" /> Menyimpan...
                 </>
+              ) : isEditing ? (
+                "Simpan Perubahan"
               ) : (
-                "📅 Buat Jadwal"
+                "Buat Jadwal"
               )}
             </button>
           </div>
@@ -238,18 +283,33 @@ function CreateModal({
   );
 }
 
-// ─── Main Dashboard ───────────────────────────────────────────
+// --- Main Dashboard ---
 
 export default function Dashboard() {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
   const [tab, setTab] = useState<Tab>("schedules");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [logs, setLogs] = useState<PostLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
+
+  // Auth guard
+  useEffect(() => {
+    const client = getAuthClient();
+    client.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.replace("/login");
+      } else {
+        setAuthChecked(true);
+      }
+    });
+  }, [router]);
 
   // Fetch schedules
   const fetchSchedules = useCallback(async () => {
@@ -275,20 +335,22 @@ export default function Dashboard() {
 
   // Load data
   useEffect(() => {
+    if (!authChecked) return;
     setLoading(true);
     Promise.all([fetchSchedules(), fetchLogs()]).finally(() =>
       setLoading(false)
     );
-  }, [fetchSchedules, fetchLogs]);
+  }, [authChecked, fetchSchedules, fetchLogs]);
 
   // Auto-refresh every 30s
   useEffect(() => {
+    if (!authChecked) return;
     const interval = setInterval(() => {
       fetchSchedules();
       fetchLogs();
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchSchedules, fetchLogs]);
+  }, [authChecked, fetchSchedules, fetchLogs]);
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -309,6 +371,13 @@ export default function Dashboard() {
     }
   };
 
+  // Logout
+  const handleLogout = async () => {
+    const client = getAuthClient();
+    await client.auth.signOut();
+    router.replace("/login");
+  };
+
   // Stats
   const stats = {
     total: schedules.length,
@@ -317,21 +386,36 @@ export default function Dashboard() {
     failed: schedules.filter((s) => s.status === "failed").length,
   };
 
+  if (!authChecked) {
+    return (
+      <div className="auth-loading">
+        <span className="spinner" />
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       {/* Header */}
       <header className="app-header">
         <div className="header-content">
           <div className="logo">
-            <div className="logo-icon">📸</div>
             <div>
-              <h1>IG Auto-Poster</h1>
-              <span>Automated Instagram Scheduling</span>
+              <h1>Sistem Otomatis Posting Instagram</h1>
+              <span className="sapaan">
+                Selamat Datang, [Nama Pengguna]!
+              </span>
+              <span> Platform Otomatis untuk Menjadwalkan dan Memposting Konten Instagram</span>
             </div>
           </div>
-          <div className="header-status">
-            <span className="status-dot" />
-            System Active
+          <div className="header-actions">
+            <div className="header-status">
+              <span className="status-dot" />
+              System Active
+            </div>
+            <button className="btn-logout" onClick={handleLogout}>
+              Keluar
+            </button>
           </div>
         </div>
       </header>
@@ -362,13 +446,13 @@ export default function Dashboard() {
           className={`tab ${tab === "schedules" ? "active" : ""}`}
           onClick={() => setTab("schedules")}
         >
-          📅 Jadwal
+          Jadwal
         </button>
         <button
           className={`tab ${tab === "logs" ? "active" : ""}`}
           onClick={() => setTab("logs")}
         >
-          📋 Log Posting
+          Log Posting
         </button>
       </div>
 
@@ -379,12 +463,12 @@ export default function Dashboard() {
             <div>
               <h2 className="section-title">Daftar Jadwal Posting</h2>
               <p className="section-subtitle">
-                Kelola jadwal auto-posting Instagram kamu
+                Kelola jadwal auto-posting Instagram
               </p>
             </div>
             <button
               className="btn btn-primary"
-              onClick={() => setShowModal(true)}
+              onClick={() => setShowCreateModal(true)}
             >
               + Buat Jadwal
             </button>
@@ -398,8 +482,8 @@ export default function Dashboard() {
               </div>
             ) : schedules.length === 0 ? (
               <div className="table-empty">
-                <div className="table-empty-icon">📭</div>
-                Belum ada jadwal. Klik &quot;Buat Jadwal&quot; untuk mulai.
+                <div className="table-empty-icon">Belum ada data</div>
+                Klik &quot;Buat Jadwal&quot; untuk mulai menjadwalkan posting.
               </div>
             ) : (
               <table>
@@ -417,7 +501,7 @@ export default function Dashboard() {
                     <tr key={s.id}>
                       <td>
                         <span className="media-badge">
-                          {MEDIA_ICONS[s.media_type]} {s.media_type}
+                          {s.media_type}
                         </span>
                       </td>
                       <td className="caption-cell" title={s.caption}>
@@ -431,17 +515,25 @@ export default function Dashboard() {
                       </td>
                       <td>
                         <span className={`status-badge ${s.status}`}>
-                          {STATUS_ICONS[s.status]} {s.status}
+                          <span className="status-indicator" />
+                          {s.status}
                         </span>
                       </td>
                       <td>
                         <div className="actions-cell">
                           <button
+                            className="btn-icon edit"
+                            title="Edit jadwal"
+                            onClick={() => setEditingSchedule(s)}
+                          >
+                            <IconEdit />
+                          </button>
+                          <button
                             className="btn-icon danger"
                             title="Hapus jadwal"
                             onClick={() => handleDelete(s.id)}
                           >
-                            🗑️
+                            <IconTrash />
                           </button>
                         </div>
                       </td>
@@ -464,7 +556,7 @@ export default function Dashboard() {
               </p>
             </div>
             <button className="btn btn-secondary" onClick={fetchLogs}>
-              🔄 Refresh
+              Refresh
             </button>
           </div>
 
@@ -476,19 +568,20 @@ export default function Dashboard() {
               </div>
             ) : logs.length === 0 ? (
               <div className="table-empty">
-                <div className="table-empty-icon">📭</div>
-                Belum ada log. Log akan muncul setelah cron berjalan.
+                <div className="table-empty-icon">Belum ada log</div>
+                Log akan muncul setelah cron berjalan.
               </div>
             ) : (
               <div className="log-list">
                 {logs.map((log) => (
                   <div key={log.id} className="log-item">
                     <span className={`status-badge ${log.status}`}>
-                      {STATUS_ICONS[log.status]} {log.status}
+                      <span className="status-indicator" />
+                      {log.status}
                     </span>
                     <span className="log-action">{log.action}</span>
                     <span className="log-message">
-                      {log.message || "—"}
+                      {log.message || "\u2014"}
                     </span>
                     <span className="log-time">
                       {formatDate(log.created_at)}
@@ -501,13 +594,25 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* Modal */}
-      {showModal && (
-        <CreateModal
-          onClose={() => setShowModal(false)}
-          onCreated={() => {
+      {/* Create Modal */}
+      {showCreateModal && (
+        <ScheduleModal
+          onClose={() => setShowCreateModal(false)}
+          onSaved={() => {
             fetchSchedules();
-            showToast("Jadwal berhasil dibuat! 🎉", "success");
+            showToast("Jadwal berhasil dibuat", "success");
+          }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {editingSchedule && (
+        <ScheduleModal
+          schedule={editingSchedule}
+          onClose={() => setEditingSchedule(null)}
+          onSaved={() => {
+            fetchSchedules();
+            showToast("Jadwal berhasil diperbarui", "success");
           }}
         />
       )}
