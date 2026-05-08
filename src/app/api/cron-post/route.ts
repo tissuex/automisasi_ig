@@ -23,6 +23,7 @@ import {
   logError,
 } from "@/lib/supabase";
 import { postToInstagram } from "@/lib/instagram/client";
+import { extractGDriveId, getGDriveDirectUrl } from "@/lib/gdrive/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -67,13 +68,18 @@ export async function POST(request: NextRequest) {
         await updateScheduleStatus(schedule.id, "processing");
         await logSuccess(schedule.id, "cron_trigger", "Jadwal mulai diproses");
 
-        // 3b. Generate public URL
-        const mediaUrl = `https://drive.google.com/uc?export=download&id=${schedule.gdrive_file_id}`;
+        // 3b. Extract clean ID & generate public URL
+        const cleanFileId = extractGDriveId(schedule.gdrive_file_id);
+        const mediaUrl = getGDriveDirectUrl(cleanFileId);
+
+        console.log(`🔗 GDrive raw: ${schedule.gdrive_file_id}`);
+        console.log(`🔗 Clean ID:   ${cleanFileId}`);
+        console.log(`🔗 Media URL:  ${mediaUrl}`);
 
         await logSuccess(
           schedule.id,
           "gdrive_url",
-          `URL: ${mediaUrl}`
+          `ID: ${cleanFileId} → URL: ${mediaUrl}`
         );
 
         // 3c. Post ke Instagram

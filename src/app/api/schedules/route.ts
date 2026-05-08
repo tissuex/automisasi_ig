@@ -11,6 +11,7 @@ import {
   createSchedule,
   type ScheduleStatus,
 } from "@/lib/supabase";
+import { extractGDriveId } from "@/lib/gdrive/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const schedule = await createSchedule({
-      gdrive_file_id,
+      gdrive_file_id: extractGDriveId(gdrive_file_id),
       media_type,
       caption,
       scheduled_at,
