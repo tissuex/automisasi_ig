@@ -1,99 +1,67 @@
 /**
- * Google Drive Upload Utility
- * ============================
- * Upload file ke Google Drive menggunakan Service Account
- * dan set permission publik agar bisa diakses Instagram API.
+ * Media Upload Utility (Supabase Storage)
+ * =========================================
+ * Upload file ke Supabase Storage bucket "media" dan dapatkan public URL.
+ * Menggantikan Google Drive upload karena Service Account tidak punya
+ * storage quota.
+ *
+ * File disimpan di bucket publik sehingga URL bisa langsung diakses
+ * oleh Instagram API tanpa perlu autentikasi.
  */
 
-import { google } from "googleapis";
-import { Readable } from "stream";
+import { getSupabaseAdmin } from "@/lib/supabase/client";
 
-// Folder tujuan upload di Google Drive
-const GDRIVE_FOLDER_ID = process.env.GDRIVE_FOLDER_ID;
-
-// Scope full drive access (diperlukan untuk upload + set permission)
-const SCOPES = ["https://www.googleapis.com/auth/drive"];
-
-const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: process.env.GDRIVE_CLIENT_EMAIL,
-    private_key: process.env.GDRIVE_PRIVATE_KEY,
-  },
-  scopes: SCOPES,
-});
+const BUCKET_NAME = "media";
 
 /**
- * Upload file ke Google Drive.
+ * Upload file ke Supabase Storage.
  * @param fileBuffer - Buffer berisi konten file
  * @param fileName - Nama file asli
  * @param mimeType - MIME type file (e.g., "image/jpeg", "video/mp4")
- * @returns Google Drive file ID
+ * @returns Public URL file yang bisa diakses langsung
  */
-export async function uploadToGDrive(
+export async function uploadMedia(
   fileBuffer: Buffer,
   fileName: string,
   mimeType: string
 ): Promise<string> {
-  console.log(`⬆️  Uploading to Drive: ${fileName} (${mimeType})`);
+  console.log(`⬆️  Uploading to Supabase Storage: ${fileName} (${mimeType})`);
 
-  const drive = google.drive({ version: "v3", auth });
+  const db = getSupabaseAdmin();
 
-  // Konversi Buffer ke Readable stream untuk upload
-  const stream = new Readable();
-  stream.push(fileBuffer);
-  stream.push(null);
+  // Generate unique filename untuk menghindari konflik
+  const timestamp = Date.now();
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const storagePath = `uploads/${timestamp}_${safeName}`;
 
-  const fileMetadata: { name: string; parents?: string[] } = {
-    name: fileName,
-  };
+  // Upload ke Supabase Storage
+  const { data, error } = await db.storage
+    .from(BUCKET_NAME)
+    .upload(storagePath, fileBuffer, {
+      contentType: mimeType,
+      upsert: false,
+    });
 
-  // Jika folder ID tersedia, upload ke folder tersebut
-  if (GDRIVE_FOLDER_ID) {
-    fileMetadata.parents = [GDRIVE_FOLDER_ID];
+  if (error) {
+    throw new Error(`Upload gagal: ${error.message}`);
   }
 
-  const response = await drive.files.create({
-    requestBody: fileMetadata,
-    media: {
-      mimeType,
-      body: stream,
-    },
-    fields: "id",
-    supportsAllDrives: true,
-  });
+  console.log(`   ✅ Uploaded! Path: ${data.path}`);
 
-  const fileId = response.data.id;
+  // Dapatkan public URL
+  const { data: urlData } = db.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(data.path);
 
-  if (!fileId) {
-    throw new Error("Google Drive upload gagal: tidak ada file ID");
+  const publicUrl = urlData.publicUrl;
+
+  if (!publicUrl) {
+    throw new Error("Gagal mendapatkan public URL");
   }
 
-  console.log(`   ✅ Uploaded! File ID: ${fileId}`);
-  return fileId;
-}
+  console.log(`   🔗 Public URL: ${publicUrl}`);
 
-/**
- * Set permission file di Google Drive menjadi publik.
- * "Anyone with the link" bisa melihat/download file.
- * @param fileId - Google Drive file ID
- */
-export async function setGDrivePublicPermission(
-  fileId: string
-): Promise<void> {
-  console.log(`🔓 Setting public permission for: ${fileId}`);
-
-  const drive = google.drive({ version: "v3", auth });
-
-  await drive.permissions.create({
-    fileId,
-    requestBody: {
-      role: "reader",
-      type: "anyone",
-    },
-    supportsAllDrives: true,
-  });
-
-  console.log(`   ✅ File is now public`);
+  return publicUrl;
 }
 
 /**

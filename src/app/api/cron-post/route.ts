@@ -68,18 +68,28 @@ export async function POST(request: NextRequest) {
         await updateScheduleStatus(schedule.id, "processing");
         await logSuccess(schedule.id, "cron_trigger", "Jadwal mulai diproses");
 
-        // 3b. Extract clean ID & generate public URL
-        const cleanFileId = extractGDriveId(schedule.gdrive_file_id);
-        const mediaUrl = getGDriveDirectUrl(cleanFileId);
+        // 3b. Resolve media URL
+        // Jika gdrive_file_id sudah berupa URL (dari Supabase Storage), gunakan langsung
+        // Jika berupa GDrive file ID (legacy), konversi ke public URL
+        let mediaUrl: string;
 
-        console.log(`🔗 GDrive raw: ${schedule.gdrive_file_id}`);
-        console.log(`🔗 Clean ID:   ${cleanFileId}`);
-        console.log(`🔗 Media URL:  ${mediaUrl}`);
+        if (schedule.gdrive_file_id.startsWith("http")) {
+          // URL langsung dari Supabase Storage
+          mediaUrl = schedule.gdrive_file_id;
+          console.log(`🔗 Direct URL: ${mediaUrl}`);
+        } else {
+          // Legacy: GDrive file ID → konversi ke URL
+          const cleanFileId = extractGDriveId(schedule.gdrive_file_id);
+          mediaUrl = getGDriveDirectUrl(cleanFileId);
+          console.log(`🔗 GDrive raw: ${schedule.gdrive_file_id}`);
+          console.log(`🔗 Clean ID:   ${cleanFileId}`);
+          console.log(`🔗 Media URL:  ${mediaUrl}`);
+        }
 
         await logSuccess(
           schedule.id,
-          "gdrive_url",
-          `ID: ${cleanFileId} → URL: ${mediaUrl}`
+          "media_url",
+          `Media URL: ${mediaUrl}`
         );
 
         // 3c. Post ke Instagram

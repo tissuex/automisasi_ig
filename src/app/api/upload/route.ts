@@ -1,8 +1,8 @@
 /**
  * API Route: POST /api/upload
  * =============================
- * Menerima file upload dari form (FormData), upload ke Google Drive,
- * set permission publik, deteksi media_type, lalu simpan jadwal ke database.
+ * Menerima file upload dari form (FormData), upload ke Supabase Storage,
+ * deteksi media_type, lalu simpan jadwal ke database.
  *
  * FormData fields:
  * - file: File (gambar atau video)
@@ -12,13 +12,10 @@
  */
 
 import { type NextRequest } from "next/server";
-import { uploadToGDrive, setGDrivePublicPermission, detectMediaType } from "@/lib/gdrive/upload";
+import { uploadMedia, detectMediaType } from "@/lib/gdrive/upload";
 import { createSchedule } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
-
-// Tidak ada batas ukuran body — didukung oleh Next.js App Router
-// File besar (video) bisa di-upload tanpa masalah
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,15 +53,13 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload ke Google Drive
-    const gdriveFileId = await uploadToGDrive(buffer, file.name, mimeType);
-
-    // Set permission publik
-    await setGDrivePublicPermission(gdriveFileId);
+    // Upload ke Supabase Storage → dapatkan public URL
+    const publicUrl = await uploadMedia(buffer, file.name, mimeType);
 
     // Simpan jadwal ke database
+    // gdrive_file_id sekarang berisi public URL langsung
     const schedule = await createSchedule({
-      gdrive_file_id: gdriveFileId,
+      gdrive_file_id: publicUrl,
       media_type: mediaType,
       caption,
       scheduled_at: scheduledAt,
