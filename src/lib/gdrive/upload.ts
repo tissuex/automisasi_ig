@@ -59,6 +59,7 @@ export async function uploadToGDrive(
       body: stream,
     },
     fields: "id",
+    supportsAllDrives: true,
   });
 
   const fileId = response.data.id;
@@ -89,6 +90,7 @@ export async function setGDrivePublicPermission(
       role: "reader",
       type: "anyone",
     },
+    supportsAllDrives: true,
   });
 
   console.log(`   ✅ File is now public`);
