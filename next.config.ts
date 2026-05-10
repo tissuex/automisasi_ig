@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // googleapis diperlukan di server-side saja, jangan di-bundle oleh webpack
+  serverExternalPackages: ["googleapis"],
   // Izinkan gambar dari domain external (Instagram CDN, dll)
   images: {
     remotePatterns: [

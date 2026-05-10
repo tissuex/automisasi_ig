@@ -33,13 +33,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST /api/schedules — body: { gdrive_file_id, media_type, caption, scheduled_at } */
+/** POST /api/schedules — body: { gdrive_file_id, media_type, caption, scheduled_at, user_email? } */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     // Validasi input
-    const { gdrive_file_id, media_type, caption, scheduled_at } = body;
+    const { gdrive_file_id, media_type, caption, scheduled_at, user_email } = body;
 
     if (!gdrive_file_id || !media_type || !caption || !scheduled_at) {
       return Response.json(
@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       media_type,
       caption,
       scheduled_at,
+      user_email: user_email || null,
     });
 
     return Response.json({ schedule }, { status: 201 });

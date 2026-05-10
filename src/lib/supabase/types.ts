@@ -45,6 +45,7 @@ export interface Database {
           scheduled_at: string;
           status: ScheduleStatus;
           ig_post_id: string | null;
+          user_email: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -56,6 +57,7 @@ export interface Database {
           scheduled_at: string;
           status?: ScheduleStatus;
           ig_post_id?: string | null;
+          user_email?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -67,6 +69,7 @@ export interface Database {
           scheduled_at?: string;
           status?: ScheduleStatus;
           ig_post_id?: string | null;
+          user_email?: string | null;
           created_at?: string;
           updated_at?: string;
         };

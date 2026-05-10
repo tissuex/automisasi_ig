@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { extractGDriveId } from "@/lib/gdrive/utils";
 import { getAuthClient } from "@/lib/supabase/auth-client";
 
 // --- Types ---
@@ -15,6 +14,7 @@ interface Schedule {
   scheduled_at: string;
   status: "pending" | "processing" | "posted" | "failed";
   ig_post_id: string | null;
+  user_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -61,6 +61,12 @@ function relativeTime(iso: string): string {
   }
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // --- SVG Icons ---
 
 function IconCamera() {
@@ -90,6 +96,25 @@ function IconTrash() {
   );
 }
 
+function IconUpload() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function IconUser() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
 // --- Toast Component ---
 
 function Toast({
@@ -113,19 +138,235 @@ function Toast({
   );
 }
 
-// --- Schedule Form Modal ---
+// --- Schedule Form Modal (Create Only — with file upload) ---
 
-function ScheduleModal({
+function CreateScheduleModal({
+  userEmail,
+  onClose,
+  onSaved,
+}: {
+  userEmail: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [caption, setCaption] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setError("");
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      // Validasi tipe
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        setError("File harus berupa gambar atau video");
+        return;
+      }
+      setSelectedFile(file);
+      setError("");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      setError("Pilih file untuk diupload");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setUploadProgress("Mengupload file ke Google Drive...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("caption", caption);
+      formData.append("scheduled_at", new Date(scheduledAt).toISOString());
+      formData.append("user_email", userEmail);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal mengupload file");
+      }
+
+      setUploadProgress("");
+      onSaved();
+      onClose();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      setError(message);
+      setUploadProgress("");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const detectedType = selectedFile
+    ? selectedFile.type.startsWith("video/")
+      ? "VIDEO"
+      : "IMAGE"
+    : null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2 className="modal-title">Buat Jadwal Baru</h2>
+
+        <form onSubmit={handleSubmit}>
+          {/* File Upload Area */}
+          <div className="form-group">
+            <label className="form-label">Upload Media</label>
+            <div
+              className={`upload-zone ${selectedFile ? "has-file" : ""}`}
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {selectedFile ? (
+                <div className="upload-preview">
+                  <div className="upload-preview-icon">
+                    {detectedType === "VIDEO" ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="23 7 16 12 23 17 23 7" />
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                      </svg>
+                    ) : (
+                      <IconCamera />
+                    )}
+                  </div>
+                  <div className="upload-preview-info">
+                    <span className="upload-preview-name">{selectedFile.name}</span>
+                    <span className="upload-preview-meta">
+                      {formatFileSize(selectedFile.size)} · {detectedType}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="upload-preview-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div className="upload-placeholder">
+                  <div className="upload-placeholder-icon">
+                    <IconUpload />
+                  </div>
+                  <span className="upload-placeholder-text">
+                    Klik atau drag & drop file di sini
+                  </span>
+                  <span className="upload-placeholder-hint">
+                    Gambar (JPG, PNG) atau Video (MP4, MOV)
+                  </span>
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="modal-caption">
+              Caption
+            </label>
+            <textarea
+              id="modal-caption"
+              className="form-textarea"
+              placeholder="Tulis caption posting..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              required
+              rows={3}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="modal-scheduled-at">
+              Jadwal Posting
+            </label>
+            <input
+              id="modal-scheduled-at"
+              className="form-input"
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              required
+            />
+          </div>
+
+          {uploadProgress && (
+            <div className="upload-progress">
+              <span className="spinner" />
+              <span>{uploadProgress}</span>
+            </div>
+          )}
+
+          {error && (
+            <p style={{ color: "var(--status-failed)", fontSize: 13, marginBottom: 12 }}>
+              {error}
+            </p>
+          )}
+
+          <div className="form-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Batal
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="spinner" /> Mengupload...
+                </>
+              ) : (
+                "Buat Jadwal"
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// --- Edit Schedule Modal (existing — JSON-based, no file upload) ---
+
+function EditScheduleModal({
   schedule,
   onClose,
   onSaved,
 }: {
-  schedule?: Schedule;
+  schedule: Schedule;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const isEditing = !!schedule;
-
   const toLocalDatetime = (iso: string) => {
     const d = new Date(iso);
     const offset = d.getTimezoneOffset();
@@ -134,10 +375,8 @@ function ScheduleModal({
   };
 
   const [form, setForm] = useState({
-    gdrive_file_id: schedule?.gdrive_file_id ?? "",
-    media_type: schedule?.media_type ?? "IMAGE",
-    caption: schedule?.caption ?? "",
-    scheduled_at: schedule ? toLocalDatetime(schedule.scheduled_at) : "",
+    caption: schedule.caption,
+    scheduled_at: toLocalDatetime(schedule.scheduled_at),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -148,16 +387,11 @@ function ScheduleModal({
     setError("");
 
     try {
-      const url = isEditing
-        ? `/api/schedules/${schedule.id}`
-        : "/api/schedules";
-      const method = isEditing ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
+      const res = await fetch(`/api/schedules/${schedule.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          caption: form.caption,
           scheduled_at: new Date(form.scheduled_at).toISOString(),
         }),
       });
@@ -181,55 +415,25 @@ function ScheduleModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal-title">
-          {isEditing ? "Edit Jadwal" : "Buat Jadwal Baru"}
-        </h2>
+        <h2 className="modal-title">Edit Jadwal</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label" htmlFor="modal-gdrive">
-              Google Drive File ID / URL
-            </label>
-            <input
-              id="modal-gdrive"
-              className="form-input"
-              type="text"
-              placeholder="Paste URL atau File ID"
-              value={form.gdrive_file_id}
-              onChange={(e) =>
-                setForm({ ...form, gdrive_file_id: extractGDriveId(e.target.value) })
-              }
-              required
-            />
-            <p className="form-hint">
-              Paste URL Google Drive — ID otomatis diekstrak
-            </p>
+            <label className="form-label">Media</label>
+            <div className="form-static">
+              <span className="media-badge">{schedule.media_type}</span>
+              <span className="form-hint" style={{ marginTop: 0, marginLeft: 8 }}>
+                File ID: {schedule.gdrive_file_id}
+              </span>
+            </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="modal-media-type">
-              Tipe Media
-            </label>
-            <select
-              id="modal-media-type"
-              className="form-select"
-              value={form.media_type}
-              onChange={(e) =>
-                setForm({ ...form, media_type: e.target.value as "IMAGE" | "VIDEO" | "CAROUSEL" })
-              }
-            >
-              <option value="IMAGE">Image</option>
-              <option value="VIDEO">Video / Reels</option>
-              <option value="CAROUSEL">Carousel</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="modal-caption">
+            <label className="form-label" htmlFor="edit-caption">
               Caption
             </label>
             <textarea
-              id="modal-caption"
+              id="edit-caption"
               className="form-textarea"
               placeholder="Tulis caption posting..."
               value={form.caption}
@@ -240,11 +444,11 @@ function ScheduleModal({
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="modal-scheduled-at">
+            <label className="form-label" htmlFor="edit-scheduled-at">
               Jadwal Posting
             </label>
             <input
-              id="modal-scheduled-at"
+              id="edit-scheduled-at"
               className="form-input"
               type="datetime-local"
               value={form.scheduled_at}
@@ -270,10 +474,8 @@ function ScheduleModal({
                 <>
                   <span className="spinner" /> Menyimpan...
                 </>
-              ) : isEditing ? (
-                "Simpan Perubahan"
               ) : (
-                "Buat Jadwal"
+                "Simpan Perubahan"
               )}
             </button>
           </div>
@@ -288,6 +490,7 @@ function ScheduleModal({
 export default function Dashboard() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>("");
   const [tab, setTab] = useState<Tab>("schedules");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [logs, setLogs] = useState<PostLog[]>([]);
@@ -299,13 +502,14 @@ export default function Dashboard() {
     type: "success" | "error";
   } | null>(null);
 
-  // Auth guard
+  // Auth guard — juga ambil email
   useEffect(() => {
     const client = getAuthClient();
     client.auth.getSession().then(({ data }) => {
       if (!data.session) {
         router.replace("/login");
       } else {
+        setUserEmail(data.session.user.email ?? "");
         setAuthChecked(true);
       }
     });
@@ -403,12 +607,16 @@ export default function Dashboard() {
             <div>
               <h1>Sistem Otomatis Posting Instagram</h1>
               <span className="sapaan">
-                Selamat Datang, [Nama Pengguna]!
+                Selamat Datang, {userEmail || "Pengguna"}!
               </span>
               <span> Platform Otomatis untuk Menjadwalkan dan Memposting Konten Instagram</span>
             </div>
           </div>
           <div className="header-actions">
+            <div className="header-user">
+              <IconUser />
+              <span>{userEmail}</span>
+            </div>
             <div className="header-status">
               <span className="status-dot" />
               System Active
@@ -491,6 +699,7 @@ export default function Dashboard() {
                   <tr>
                     <th>Media</th>
                     <th>Caption</th>
+                    <th>Email</th>
                     <th>Dijadwalkan</th>
                     <th>Status</th>
                     <th>Aksi</th>
@@ -506,6 +715,9 @@ export default function Dashboard() {
                       </td>
                       <td className="caption-cell" title={s.caption}>
                         {s.caption}
+                      </td>
+                      <td className="email-cell" title={s.user_email || "—"}>
+                        {s.user_email || "—"}
                       </td>
                       <td className="date-cell">
                         <div>{formatDate(s.scheduled_at)}</div>
@@ -596,7 +808,8 @@ export default function Dashboard() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <ScheduleModal
+        <CreateScheduleModal
+          userEmail={userEmail}
           onClose={() => setShowCreateModal(false)}
           onSaved={() => {
             fetchSchedules();
@@ -607,7 +820,7 @@ export default function Dashboard() {
 
       {/* Edit Modal */}
       {editingSchedule && (
-        <ScheduleModal
+        <EditScheduleModal
           schedule={editingSchedule}
           onClose={() => setEditingSchedule(null)}
           onSaved={() => {
