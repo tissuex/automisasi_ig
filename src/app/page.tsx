@@ -28,7 +28,18 @@ interface PostLog {
   created_at: string;
 }
 
-type Tab = "schedules" | "logs";
+type Tab = "schedules" | "logs" | "gallery";
+
+interface GalleryItem {
+  id: string;
+  media_url: string;
+  media_type: "IMAGE" | "VIDEO" | "CAROUSEL";
+  caption: string;
+  user_email: string | null;
+  status: string;
+  scheduled_at: string;
+  created_at: string;
+}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -102,6 +113,49 @@ function IconUpload() {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="17 8 12 3 7 8" />
       <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function IconGallery() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <polyline points="21 15 16 10 5 21" />
+    </svg>
+  );
+}
+
+function IconClose() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function IconChevronLeft() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+
+function IconChevronRight() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+function IconPlay() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <polygon points="5 3 19 12 5 21 5 3" />
     </svg>
   );
 }
@@ -494,7 +548,11 @@ export default function Dashboard() {
   const [tab, setTab] = useState<Tab>("schedules");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [logs, setLogs] = useState<PostLog[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [galleryFilter, setGalleryFilter] = useState<"ALL" | "IMAGE" | "VIDEO">("ALL");
+  const [lightboxItem, setLightboxItem] = useState<GalleryItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [galleryLoading, setGalleryLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [toast, setToast] = useState<{
@@ -537,14 +595,32 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Fetch gallery items
+  const fetchGallery = useCallback(async (filter?: "ALL" | "IMAGE" | "VIDEO") => {
+    setGalleryLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: "100" });
+      if (filter && filter !== "ALL") {
+        params.set("media_type", filter);
+      }
+      const res = await fetch(`/api/gallery?${params}`);
+      const data = await res.json();
+      setGalleryItems(data.items || []);
+    } catch {
+      showToast("Gagal memuat galeri", "error");
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, []);
+
   // Load data
   useEffect(() => {
     if (!authChecked) return;
     setLoading(true);
-    Promise.all([fetchSchedules(), fetchLogs()]).finally(() =>
+    Promise.all([fetchSchedules(), fetchLogs(), fetchGallery()]).finally(() =>
       setLoading(false)
     );
-  }, [authChecked, fetchSchedules, fetchLogs]);
+  }, [authChecked, fetchSchedules, fetchLogs, fetchGallery]);
 
   // Auto-refresh every 30s
   useEffect(() => {
@@ -552,9 +628,39 @@ export default function Dashboard() {
     const interval = setInterval(() => {
       fetchSchedules();
       fetchLogs();
+      fetchGallery(galleryFilter);
     }, 30000);
     return () => clearInterval(interval);
-  }, [authChecked, fetchSchedules, fetchLogs]);
+  }, [authChecked, fetchSchedules, fetchLogs, fetchGallery, galleryFilter]);
+
+  // Re-fetch gallery saat filter berubah
+  useEffect(() => {
+    if (!authChecked) return;
+    fetchGallery(galleryFilter);
+  }, [galleryFilter, authChecked, fetchGallery]);
+
+  // Navigasi lightbox: item sebelumnya / berikutnya
+  const navigateLightbox = useCallback((direction: "prev" | "next") => {
+    if (!lightboxItem) return;
+    const currentIndex = galleryItems.findIndex((item) => item.id === lightboxItem.id);
+    if (currentIndex === -1) return;
+    const newIndex = direction === "prev"
+      ? (currentIndex - 1 + galleryItems.length) % galleryItems.length
+      : (currentIndex + 1) % galleryItems.length;
+    setLightboxItem(galleryItems[newIndex]);
+  }, [lightboxItem, galleryItems]);
+
+  // Keyboard navigation untuk lightbox
+  useEffect(() => {
+    if (!lightboxItem) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxItem(null);
+      if (e.key === "ArrowLeft") navigateLightbox("prev");
+      if (e.key === "ArrowRight") navigateLightbox("next");
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxItem, navigateLightbox]);
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -661,6 +767,15 @@ export default function Dashboard() {
           onClick={() => setTab("logs")}
         >
           Log Posting
+        </button>
+        <button
+          className={`tab ${tab === "gallery" ? "active" : ""}`}
+          onClick={() => setTab("gallery")}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 14, height: 14, display: "inline-flex" }}><IconGallery /></span>
+            Galeri Media
+          </span>
         </button>
       </div>
 
@@ -804,6 +919,168 @@ export default function Dashboard() {
             )}
           </div>
         </>
+      )}
+
+      {/* Gallery Tab */}
+      {tab === "gallery" && (
+        <>
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">Galeri Media</h2>
+              <p className="section-subtitle">
+                Lihat semua foto dan video yang sudah diupload
+              </p>
+            </div>
+            <button className="btn btn-secondary" onClick={() => fetchGallery(galleryFilter)}>
+              Refresh
+            </button>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="gallery-filters">
+            {(["ALL", "IMAGE", "VIDEO"] as const).map((filter) => (
+              <button
+                key={filter}
+                className={`gallery-filter-btn ${galleryFilter === filter ? "active" : ""}`}
+                onClick={() => setGalleryFilter(filter)}
+              >
+                {filter === "ALL" ? "Semua" : filter === "IMAGE" ? "📷 Foto" : "🎬 Video"}
+              </button>
+            ))}
+          </div>
+
+          {/* Gallery grid */}
+          <div className="gallery-container">
+            {galleryLoading ? (
+              <div className="table-empty">
+                <div className="spinner" style={{ margin: "0 auto 12px" }} />
+                Memuat galeri...
+              </div>
+            ) : galleryItems.length === 0 ? (
+              <div className="table-empty">
+                <div className="gallery-empty-icon">
+                  <IconGallery />
+                </div>
+                <div className="table-empty-icon">Belum ada media</div>
+                Upload file saat membuat jadwal untuk mengisi galeri.
+              </div>
+            ) : (
+              <div className="gallery-grid">
+                {galleryItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="gallery-card"
+                    onClick={() => setLightboxItem(item)}
+                  >
+                    <div className="gallery-card-media">
+                      {item.media_type === "VIDEO" ? (
+                        <div className="gallery-video-thumb">
+                          <video
+                            src={item.media_url}
+                            muted
+                            preload="metadata"
+                            playsInline
+                          />
+                          <div className="gallery-play-overlay">
+                            <IconPlay />
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={item.media_url}
+                          alt={item.caption}
+                          loading="lazy"
+                        />
+                      )}
+                      <div className="gallery-card-overlay">
+                        <span className={`status-badge ${item.status}`}>
+                          <span className="status-indicator" />
+                          {item.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="gallery-card-info">
+                      <p className="gallery-card-caption">{item.caption}</p>
+                      <div className="gallery-card-meta">
+                        <span className="gallery-card-user">
+                          <IconUser /> {item.user_email || "Anonim"}
+                        </span>
+                        <span className="gallery-card-date">
+                          {formatDate(item.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxItem && (
+        <div className="lightbox-overlay" onClick={() => setLightboxItem(null)}>
+          <button className="lightbox-close" onClick={() => setLightboxItem(null)}>
+            <IconClose />
+          </button>
+
+          {galleryItems.length > 1 && (
+            <>
+              <button
+                className="lightbox-nav lightbox-nav-prev"
+                onClick={(e) => { e.stopPropagation(); navigateLightbox("prev"); }}
+              >
+                <IconChevronLeft />
+              </button>
+              <button
+                className="lightbox-nav lightbox-nav-next"
+                onClick={(e) => { e.stopPropagation(); navigateLightbox("next"); }}
+              >
+                <IconChevronRight />
+              </button>
+            </>
+          )}
+
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <div className="lightbox-media">
+              {lightboxItem.media_type === "VIDEO" ? (
+                <video
+                  src={lightboxItem.media_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  style={{ maxWidth: "100%", maxHeight: "70vh", borderRadius: "var(--radius-lg)" }}
+                />
+              ) : (
+                <img
+                  src={lightboxItem.media_url}
+                  alt={lightboxItem.caption}
+                  style={{ maxWidth: "100%", maxHeight: "70vh", borderRadius: "var(--radius-lg)" }}
+                />
+              )}
+            </div>
+            <div className="lightbox-details">
+              <div className="lightbox-caption">{lightboxItem.caption}</div>
+              <div className="lightbox-meta">
+                <span className="lightbox-meta-item">
+                  <IconUser />
+                  <span>{lightboxItem.user_email || "Anonim"}</span>
+                </span>
+                <span className="lightbox-meta-item">
+                  <span className="media-badge">{lightboxItem.media_type}</span>
+                </span>
+                <span className={`status-badge ${lightboxItem.status}`}>
+                  <span className="status-indicator" />
+                  {lightboxItem.status}
+                </span>
+                <span className="lightbox-meta-item lightbox-meta-date">
+                  {formatDate(lightboxItem.scheduled_at)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Create Modal */}

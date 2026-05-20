@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getAuthClient } from "@/lib/supabase/auth-client";
 
 export default function LoginPage() {
@@ -94,6 +95,12 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+          </div>
+
+          <div className="forgot-link-wrapper">
+            <Link href="/forgot-password" className="forgot-link">
+              Lupa Password?
+            </Link>
           </div>
 
           {error && <p className="login-error">{error}</p>}

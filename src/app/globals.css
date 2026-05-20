@@ -171,6 +171,177 @@ body {
   cursor: not-allowed;
 }
 
+/* --- Forgot Password Link (di halaman login) --- */
+
+.forgot-link-wrapper {
+  text-align: right;
+  margin-top: -8px;
+}
+
+.forgot-link {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+
+.forgot-link:hover {
+  color: var(--status-processing);
+  text-decoration: underline;
+}
+
+/* --- Reset Password Success State --- */
+
+.reset-success {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.reset-success-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  color: var(--accent-green);
+  background: var(--accent-green-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: iconBounce 0.5s ease;
+}
+
+.reset-success-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.reset-success-icon--check {
+  color: var(--status-posted);
+  background: var(--status-posted-bg);
+}
+
+.reset-success-icon--warning {
+  color: var(--status-pending);
+  background: var(--status-pending-bg);
+}
+
+@keyframes iconBounce {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.reset-success-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bg-navy);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.reset-success-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.reset-success-text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.reset-success-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 20px;
+}
+
+.reset-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.reset-back-link {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 6px 0;
+  transition: color var(--transition-fast);
+}
+
+.reset-back-link:hover {
+  color: var(--status-processing);
+}
+
+/* --- Password Strength Indicator --- */
+
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.password-strength-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border-subtle);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.password-strength-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.password-strength-fill.weak {
+  background: var(--status-failed);
+}
+
+.password-strength-fill.medium {
+  background: var(--status-pending);
+}
+
+.password-strength-fill.strong {
+  background: var(--status-posted);
+}
+
+.password-strength-label {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+  color: var(--text-tertiary);
+}
+
+/* --- Password Match Indicator --- */
+
+.password-match {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.password-match.match {
+  color: var(--status-posted);
+  background: var(--status-posted-bg);
+}
+
+.password-match.no-match {
+  color: var(--status-failed);
+  background: var(--status-failed-bg);
+}
+
 /* --- Auth Loading --- */
 
 .auth-loading {
@@ -1031,5 +1202,429 @@ tr:hover td {
   display: flex;
   align-items: center;
   padding: 8px 0;
+}
+
+/* ═══════════════════════════════════════════════
+   Gallery — Grid, Card, Filter, Lightbox
+   ═══════════════════════════════════════════════ */
+
+/* Filter buttons (Semua / Foto / Video) */
+
+.gallery-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.gallery-filter-btn {
+  padding: 7px 18px;
+  border-radius: 100px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.gallery-filter-btn:hover {
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+  background: var(--bg-card-hover);
+}
+
+.gallery-filter-btn.active {
+  background: var(--bg-navy);
+  border-color: var(--bg-navy);
+  color: var(--text-inverse);
+  font-weight: 600;
+}
+
+/* Gallery container */
+
+.gallery-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+/* Empty icon di tengah */
+
+.gallery-empty-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--text-tertiary);
+  margin: 0 auto 12px;
+  opacity: 0.4;
+}
+
+.gallery-empty-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Grid layout */
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0;
+}
+
+/* Individual card */
+
+.gallery-card {
+  position: relative;
+  cursor: pointer;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--transition-default);
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.gallery-card:hover {
+  background: var(--bg-card-hover);
+  z-index: 1;
+  box-shadow: 0 4px 20px rgba(10, 25, 48, 0.1);
+}
+
+/* Media container (gambar/video) */
+
+.gallery-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+
+.gallery-card-media img,
+.gallery-card-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.gallery-card:hover .gallery-card-media img,
+.gallery-card:hover .gallery-card-media video {
+  transform: scale(1.06);
+}
+
+/* Overlay status badge di media */
+
+.gallery-card-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all var(--transition-default);
+}
+
+.gallery-card:hover .gallery-card-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Video thumbnail khusus */
+
+.gallery-video-thumb {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.gallery-video-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  transition: background var(--transition-default);
+}
+
+.gallery-card:hover .gallery-play-overlay {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.gallery-play-overlay svg {
+  width: 42px;
+  height: 42px;
+  color: white;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  transition: transform var(--transition-default);
+}
+
+.gallery-card:hover .gallery-play-overlay svg {
+  transform: scale(1.12);
+}
+
+/* Informasi di bawah media */
+
+.gallery-card-info {
+  padding: 12px 14px;
+}
+
+.gallery-card-caption {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.gallery-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gallery-card-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery-card-date {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════
+   Lightbox — Full-screen media viewer
+   ═══════════════════════════════════════════════ */
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  animation: lightbox-fadein 0.25s ease;
+  padding: 24px;
+}
+
+@keyframes lightbox-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Tombol close */
+
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  z-index: 310;
+}
+
+.lightbox-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+/* Navigasi kiri/kanan */
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  z-index: 310;
+}
+
+.lightbox-nav svg {
+  width: 22px;
+  height: 22px;
+}
+
+.lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.lightbox-nav-prev {
+  left: 18px;
+}
+
+.lightbox-nav-next {
+  right: 18px;
+}
+
+/* Konten lightbox (media + detail) */
+
+.lightbox-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 900px;
+  width: 100%;
+  animation: lightbox-scaleup 0.3s ease;
+}
+
+@keyframes lightbox-scaleup {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.lightbox-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.lightbox-media img,
+.lightbox-media video {
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Detail di bawah media */
+
+.lightbox-details {
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.lightbox-caption {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.lightbox-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.lightbox-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.lightbox-meta-date {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gallery responsive */
+
+@media (max-width: 768px) {
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  .lightbox-nav {
+    width: 36px;
+    height: 36px;
+  }
+
+  .lightbox-nav svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .lightbox-nav-prev { left: 8px; }
+  .lightbox-nav-next { right: 8px; }
+
+  .lightbox-close {
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .lightbox-overlay {
+    padding: 12px;
+  }
+
+  .lightbox-caption {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .gallery-filters {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .gallery-card-info {
+    padding: 8px 10px;
+  }
+
+  .gallery-card-caption {
+    font-size: 12px;
+    -webkit-line-clamp: 1;
+  }
 }
 
