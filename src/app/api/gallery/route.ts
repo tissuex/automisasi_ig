@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Filter berdasarkan media_type jika diberikan
     if (mediaType && ["IMAGE", "VIDEO"].includes(mediaType)) {
-      query = query.eq("media_type", mediaType);
+      query = query.eq("media_type", mediaType as "IMAGE" | "VIDEO");
     }
 
     const { data, error, count } = await query;
