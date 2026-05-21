@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthClient } from "@/lib/supabase/auth-client";
+import { useTheme } from "@/lib/use-theme";
 import {
   LayoutDashboard, CalendarDays, Activity, Settings,
-  Bell, Search, Plus, Aperture, Edit2, Trash2,
+  Search, Plus, Aperture, Edit2, Trash2,
   Image as ImageIcon, Video, CheckCircle2, XCircle,
-  Clock, LogOut, ChevronDown, Menu, X
+  Clock, LogOut, ChevronDown, Menu, X, Sun, Moon
 } from "lucide-react";
 
 // --- Types ---
@@ -566,7 +567,7 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
             }}>
               <Aperture style={{ width: 20, height: 20, color: "white" }} />
             </div>
-            <span style={{ fontWeight: 700, color: "white", fontSize: 18 }}>AutoPost OS</span>
+            <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: 18 }}>AutoPost OS</span>
           </div>
           {/* Close button — visible only on mobile/tablet */}
           <button
@@ -580,13 +581,13 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
         {/* Nav */}
         <nav style={{ padding: "0 16px", flex: 1 }}>
           <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-tertiary)", marginBottom: 8, marginLeft: 8 }}>Core</p>
-          <a href="#" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "rgba(148,163,184,0.08)", color: "white", borderRadius: 8, textDecoration: "none", fontSize: 14 }}>
+          <a href="/" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "var(--accent-green-light)", color: "var(--text-primary)", borderRadius: 8, textDecoration: "none", fontSize: 14 }}>
             <LayoutDashboard style={{ width: 16, height: 16 }} /> Dashboard
           </a>
-          <a href="#" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", color: "var(--text-tertiary)", textDecoration: "none", fontSize: 14, marginTop: 4 }}>
+          <a href="/jadwal-posting" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", color: "var(--text-tertiary)", textDecoration: "none", fontSize: 14, marginTop: 4 }}>
             <CalendarDays style={{ width: 16, height: 16 }} /> Jadwal Posting
           </a>
-          <a href="#" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", color: "var(--text-tertiary)", textDecoration: "none", fontSize: 14, marginTop: 4 }}>
+          <a href="/log-aktivitas" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", color: "var(--text-tertiary)", textDecoration: "none", fontSize: 14, marginTop: 4 }}>
             <Activity style={{ width: 16, height: 16 }} /> Log Aktivitas
           </a>
         </nav>
@@ -616,6 +617,8 @@ export default function Dashboard() {
     type: "success" | "error";
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { theme, toggleTheme } = useTheme();
 
   // Auth guard — juga ambil email
   useEffect(() => {
@@ -779,13 +782,13 @@ export default function Dashboard() {
         <div className="header-search">
           <div className="header-search-inner">
             <Search style={{ width: 16, height: 16, position: "absolute", left: 12, color: "var(--text-tertiary)" }} />
-            <input type="text" placeholder="Search commands..." className="header-search-input" />
+            <input type="text" placeholder="Cari jadwal, caption, email..." className="header-search-input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            {searchQuery && <button className="header-search-clear" onClick={() => setSearchQuery("")}><X style={{ width: 14, height: 14 }} /></button>}
           </div>
         </div>
         <div className="header-right">
-          <button className="header-bell-btn">
-            <Bell style={{ width: 20, height: 20 }} />
-            <span className="header-bell-dot" />
+          <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Ganti tema" title={theme === "dark" ? "Mode Terang" : "Mode Gelap"}>
+            {theme === "dark" ? <Sun style={{ width: 18, height: 18 }} /> : <Moon style={{ width: 18, height: 18 }} />}
           </button>
           <div className="header-avatar-group">
             <div className="header-avatar">
@@ -803,7 +806,7 @@ export default function Dashboard() {
       <main className="dashboard-main">
         <div className="dashboard-title-row">
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: "white" }}>Platform Overview</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)" }}>Platform Overview</h1>
             <p style={{ fontSize: 14, color: "var(--text-tertiary)", marginTop: 4 }}>
               Sistem Otomatis untuk Menjadwalkan dan Memposting Konten Instagram.
             </p>
@@ -900,7 +903,11 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {schedules.map((s) => (
+                  {schedules.filter((s) => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    return s.caption.toLowerCase().includes(q) || (s.user_email || "").toLowerCase().includes(q) || s.status.toLowerCase().includes(q) || s.media_type.toLowerCase().includes(q);
+                  }).map((s) => (
                     <tr key={s.id}>
                       <td>
                         <span className="media-badge" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
