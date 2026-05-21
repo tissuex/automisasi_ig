@@ -1,0 +1,811 @@
+# Walkthrough: Redesign Before → After
+
+> [!IMPORTANT]
+> Hanya perubahan **design**. Tidak ada perubahan fitur/logic.
+
+---
+
+## 0. Install Dependency Baru
+
+```bash
+npm install lucide-react
+```
+
+---
+
+## 1. `globals.css` — CSS Variables
+
+### 1A. Font Import (Line 1)
+
+**Before:**
+```css
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+```
+
+**After:**
+```css
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@300;400;500;600;700&display=swap");
+```
+
+### 1B. CSS Variables `:root` (Line 5–63)
+
+**Before:**
+```css
+--bg-primary: #f0f2f5;
+--bg-secondary: #ffffff;
+--bg-card: #ffffff;
+--bg-card-hover: #f7f8fa;
+--bg-input: #ffffff;
+--bg-overlay: rgba(10, 25, 47, 0.55);
+--bg-navy: #0a1930;
+--bg-navy-light: #122245;
+```
+
+**After:**
+```css
+--bg-primary: #0a0a0b;
+--bg-secondary: #0c0c0e;
+--bg-card: #131316;
+--bg-card-hover: #151518;
+--bg-input: #131316;
+--bg-overlay: rgba(0, 0, 0, 0.6);
+--bg-navy: #0c0c0e;
+--bg-navy-light: #131316;
+```
+
+---
+
+**Before:**
+```css
+--border-subtle: #e2e6ec;
+--border-default: #cdd4de;
+--border-focus: #1a5276;
+```
+
+**After:**
+```css
+--border-subtle: rgba(148, 163, 184, 0.12);
+--border-default: rgba(148, 163, 184, 0.18);
+--border-focus: #6366f1;
+```
+
+---
+
+**Before:**
+```css
+--text-primary: #0a1930;
+--text-secondary: #3d4f6f;
+--text-tertiary: #7a8ba8;
+--text-inverse: #ffffff;
+--text-highlight: #c79b1a;
+```
+
+**After:**
+```css
+--text-primary: #e2e8f0;
+--text-secondary: #94a3b8;
+--text-tertiary: #64748b;
+--text-inverse: #0a0a0b;
+--text-highlight: #a78bfa;
+```
+
+---
+
+**Before:**
+```css
+--accent-green: #1a8754;
+--accent-green-hover: #157347;
+--accent-green-light: rgba(26, 135, 84, 0.08);
+```
+
+**After:**
+```css
+--accent-green: #6366f1;
+--accent-green-hover: #4f46e5;
+--accent-green-light: rgba(99, 102, 241, 0.1);
+```
+
+---
+
+**Before:**
+```css
+--status-pending: #b8860b;
+--status-pending-bg: rgba(184, 134, 11, 0.08);
+--status-processing: #1a5276;
+--status-processing-bg: rgba(26, 82, 118, 0.08);
+--status-posted: #1a8754;
+--status-posted-bg: rgba(26, 135, 84, 0.08);
+--status-failed: #c0392b;
+--status-failed-bg: rgba(192, 57, 43, 0.07);
+--status-success: #1a8754;
+--status-success-bg: rgba(26, 135, 84, 0.08);
+--status-error: #c0392b;
+--status-error-bg: rgba(192, 57, 43, 0.07);
+```
+
+**After:**
+```css
+--status-pending: #fbbf24;
+--status-pending-bg: rgba(251, 191, 36, 0.1);
+--status-processing: #818cf8;
+--status-processing-bg: rgba(129, 140, 248, 0.1);
+--status-posted: #34d399;
+--status-posted-bg: rgba(52, 211, 153, 0.1);
+--status-failed: #fb7185;
+--status-failed-bg: rgba(251, 113, 133, 0.1);
+--status-success: #34d399;
+--status-success-bg: rgba(52, 211, 153, 0.1);
+--status-error: #fb7185;
+--status-error-bg: rgba(251, 113, 133, 0.1);
+```
+
+---
+
+**Before:**
+```css
+--shadow-card: 0 1px 3px rgba(10, 25, 48, 0.06), 0 2px 8px rgba(10, 25, 48, 0.04);
+--shadow-card-hover: 0 2px 6px rgba(10, 25, 48, 0.08), 0 4px 16px rgba(10, 25, 48, 0.06);
+--shadow-modal: 0 8px 32px rgba(10, 25, 48, 0.18);
+```
+
+**After:**
+```css
+--shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+--shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
+--shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.6);
+```
+
+### 1C. Tambah Custom Scrollbar (setelah body)
+
+**Before:** _(tidak ada)_
+
+**After:** Tambahkan setelah `body { ... }`:
+```css
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.2); border-radius: 100px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.35); }
+```
+
+### 1D. Login Container (Line ~90)
+
+**Before:**
+```css
+.login-container {
+  background: var(--bg-navy);
+}
+```
+
+**After:**
+```css
+.login-container {
+  background: var(--bg-primary);
+}
+```
+
+### 1E. Login Card (Line ~99)
+
+**Before:**
+```css
+.login-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+}
+```
+
+**After:**
+```css
+.login-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  border: 1px solid var(--border-subtle);
+}
+```
+
+### 1F. Login Title (Line ~121)
+
+**Before:**
+```css
+.login-title {
+  color: var(--bg-navy);
+}
+```
+
+**After:**
+```css
+.login-title {
+  color: var(--text-primary);
+}
+```
+
+### 1G. Auth Loading (Line ~347)
+
+**Before:**
+```css
+.auth-loading {
+  background: var(--bg-primary);
+}
+```
+
+**After:**
+```css
+.auth-loading {
+  background: var(--bg-primary);
+}
+```
+_(otomatis berubah karena variable berubah)_
+
+### 1H. App Header (Line ~363)
+
+**Before:**
+```css
+.app-header {
+  background: var(--bg-navy);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+```
+
+**After:**
+```css
+.app-header {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+}
+```
+
+### 1I. Status Dot (Line ~430)
+
+**Before:**
+```css
+.status-dot {
+  background: #2ecc71;
+}
+```
+
+**After:**
+```css
+.status-dot {
+  background: #34d399;
+}
+```
+
+### 1J. Table thead (Line ~594)
+
+**Before:**
+```css
+thead {
+  background: var(--bg-navy);
+}
+th {
+  color: rgba(255, 255, 255, 0.85);
+}
+```
+
+**After:**
+```css
+thead {
+  background: transparent;
+}
+th {
+  color: var(--text-tertiary);
+}
+```
+
+### 1K. Table Row Hover (Line ~621)
+
+**Before:**
+```css
+tr:hover td {
+  background: var(--bg-card-hover);
+}
+```
+
+**After:**
+```css
+tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+```
+
+### 1L. Media Badge (Line ~634)
+
+**Before:**
+```css
+.media-badge {
+  background: rgba(26, 82, 118, 0.08);
+  color: var(--status-processing);
+  border: 1px solid rgba(26, 82, 118, 0.12);
+}
+```
+
+**After:**
+```css
+.media-badge {
+  background: rgba(99, 102, 241, 0.1);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+```
+
+### 1M. Section Title (Line ~509)
+
+**Before:**
+```css
+.section-title {
+  color: var(--bg-navy);
+}
+```
+
+**After:**
+```css
+.section-title {
+  color: white;
+}
+```
+
+### 1N. Tab Active (Line ~493)
+
+**Before:**
+```css
+.tab.active {
+  color: var(--bg-navy);
+  border-bottom-color: var(--bg-navy);
+}
+```
+
+**After:**
+```css
+.tab.active {
+  color: #818cf8;
+  border-bottom-color: #818cf8;
+}
+```
+
+### 1O. Tab Hover (Line ~488)
+
+**Before:**
+```css
+.tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-card-hover);
+}
+```
+
+**After:**
+```css
+.tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+```
+
+### 1P. Stat Value (Line ~554)
+
+**Before:**
+```css
+.stat-value {
+  color: var(--bg-navy);
+}
+```
+
+**After:**
+```css
+.stat-value {
+  color: white;
+}
+```
+
+### 1Q. Modal Title (Line ~800)
+
+**Before:**
+```css
+.modal-title {
+  color: var(--bg-navy);
+}
+```
+
+**After:**
+```css
+.modal-title {
+  color: var(--text-primary);
+}
+```
+
+### 1R. Log Action (Line ~950)
+
+**Before:**
+```css
+.log-action {
+  color: var(--bg-navy);
+  background: rgba(10, 25, 48, 0.04);
+}
+```
+
+**After:**
+```css
+.log-action {
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.1);
+}
+```
+
+### 1S. Spinner (Line ~978)
+
+**Before:**
+```css
+.spinner {
+  border-top-color: var(--accent-green);
+}
+```
+
+**After:**
+```css
+.spinner {
+  border-top-color: #6366f1;
+}
+```
+_(otomatis via variable)_
+
+### 1T. Gallery Card Media Bg (Line ~1303)
+
+**Before:**
+```css
+.gallery-card-media {
+  background: #f0f2f5;
+}
+```
+
+**After:**
+```css
+.gallery-card-media {
+  background: #1a1a1e;
+}
+```
+
+### 1U. Reset Success Title (Line ~235)
+
+**Before:**
+```css
+.reset-success-title {
+  color: var(--bg-navy);
+}
+```
+
+**After:**
+```css
+.reset-success-title {
+  color: var(--text-primary);
+}
+```
+
+### 1V. Forgot Link Hover (Line ~189)
+
+**Before:**
+```css
+.forgot-link:hover {
+  color: var(--status-processing);
+}
+```
+
+**After:**
+```css
+.forgot-link:hover {
+  color: #818cf8;
+}
+```
+
+### 1W. Btn Icon Edit Hover (Line ~753)
+
+**Before:**
+```css
+.btn-icon.edit:hover {
+  color: var(--status-processing);
+  border-color: rgba(26, 82, 118, 0.3);
+  background: var(--status-processing-bg);
+}
+```
+
+**After:**
+```css
+.btn-icon.edit:hover {
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.1);
+}
+```
+
+---
+
+## 2. `page.tsx` — Layout Structure
+
+### 2A. Import Section (Line 1–6)
+
+**Before:**
+```tsx
+"use client";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { getAuthClient } from "@/lib/supabase/auth-client";
+```
+
+**After:**
+```tsx
+"use client";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { getAuthClient } from "@/lib/supabase/auth-client";
+import {
+  LayoutDashboard, CalendarDays, Activity, Settings,
+  Bell, Search, Plus, Instagram, Edit2, Trash2,
+  Image as ImageIcon, Video, CheckCircle2, XCircle,
+  Clock, LogOut, ChevronDown
+} from "lucide-react";
+```
+
+### 2B. Tambah Sidebar Component (sebelum `export default function Dashboard`)
+
+**Before:** _(tidak ada sidebar)_
+
+**After:** Tambahkan komponen Sidebar baru:
+```tsx
+function Sidebar() {
+  return (
+    <aside style={{
+      position: "fixed", inset: "0", width: 256,
+      background: "var(--bg-secondary)", borderRight: "1px solid var(--border-subtle)",
+      display: "flex", flexDirection: "column", zIndex: 20
+    }}>
+      {/* Logo */}
+      <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: "linear-gradient(135deg, #6366f1, #7c3aed)",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <Instagram style={{ width: 20, height: 20, color: "white" }} />
+        </div>
+        <span style={{ fontWeight: 700, color: "white", fontSize: 18 }}>AutoPost OS</span>
+      </div>
+      {/* Nav */}
+      <nav style={{ padding: "0 16px", flex: 1 }}>
+        <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-tertiary)", marginBottom: 8, marginLeft: 8 }}>Core</p>
+        <a href="#" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "rgba(148,163,184,0.08)", color: "white", borderRadius: 8, textDecoration: "none", fontSize: 14 }}>
+          <LayoutDashboard style={{ width: 16, height: 16 }} /> Dashboard
+        </a>
+        <a href="#" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", color: "var(--text-tertiary)", textDecoration: "none", fontSize: 14 }}>
+          <CalendarDays style={{ width: 16, height: 16 }} /> Jadwal Posting
+        </a>
+        <a href="#" style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", color: "var(--text-tertiary)", textDecoration: "none", fontSize: 14 }}>
+          <Activity style={{ width: 16, height: 16 }} /> Log Aktivitas
+        </a>
+      </nav>
+    </aside>
+  );
+}
+```
+
+### 2C. Main Dashboard Return — Root Container (Line ~708)
+
+**Before:**
+```tsx
+<div className="app-container">
+```
+
+**After:**
+```tsx
+<div style={{ minHeight: "100vh", background: "var(--bg-primary)", color: "var(--text-secondary)", position: "relative" }}>
+  {/* Background decoration */}
+  <div style={{ position: "fixed", bottom: -192, right: -192, width: 384, height: 384, background: "rgba(99,102,241,0.1)", filter: "blur(120px)", borderRadius: "50%", pointerEvents: "none" }} />
+  <Sidebar />
+```
+
+### 2D. Header Section (Line ~710–735)
+
+**Before:**
+```tsx
+<header className="app-header">
+  <div className="header-content">
+    <div className="logo">
+      <div>
+        <h1>Sistem Otomatis Posting Instagram</h1>
+        <span className="sapaan">Selamat Datang, {userEmail || "Pengguna"}!</span>
+        <span>Platform Otomatis untuk Menjadwalkan...</span>
+      </div>
+    </div>
+    <div className="header-actions">
+      <div className="header-user"><IconUser /><span>{userEmail}</span></div>
+      <div className="header-status"><span className="status-dot" />System Active</div>
+      <button className="btn-logout" onClick={handleLogout}>Keluar</button>
+    </div>
+  </div>
+</header>
+```
+
+**After:**
+```tsx
+<header style={{
+  height: 64, marginLeft: 256, background: "rgba(10,10,11,0.8)",
+  backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border-subtle)",
+  position: "sticky", top: 0, zIndex: 10,
+  display: "flex", alignItems: "center", justifyContent: "space-between",
+  padding: "0 32px"
+}}>
+  <div style={{ maxWidth: 400, width: "100%" }}>
+    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+      <Search style={{ width: 16, height: 16, position: "absolute", left: 12, color: "var(--text-tertiary)" }} />
+      <input type="text" placeholder="Search commands..."
+        style={{ width: "100%", fontSize: 12, background: "rgba(148,163,184,0.06)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "6px 12px 6px 36px", color: "var(--text-primary)", outline: "none" }}
+      />
+    </div>
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+    <button style={{ position: "relative", padding: 8, borderRadius: "50%", background: "transparent", border: "none", color: "var(--text-tertiary)", cursor: "pointer" }}>
+      <Bell style={{ width: 20, height: 20 }} />
+      <span style={{ position: "absolute", top: 4, right: 4, width: 10, height: 10, background: "#fb7185", borderRadius: "50%", border: "2px solid var(--bg-primary)" }} />
+    </button>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #818cf8, #34d399)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--bg-primary)", fontWeight: 700, fontSize: 12 }}>
+        {(userEmail?.[0] || "A").toUpperCase()}
+      </div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", lineHeight: 1 }}>{userEmail || "user"}</div>
+        <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>Admin</div>
+      </div>
+    </div>
+  </div>
+</header>
+```
+
+### 2E. Main Content Area — Title + Actions (Line ~738–755)
+
+**Before:**
+```tsx
+{/* Stats */}
+<div className="stats-grid">
+```
+
+**After:** Bungkus stats + content dalam main dengan margin-left:
+```tsx
+<main style={{ marginLeft: 256, padding: "32px 32px", maxWidth: 1400 }}>
+  <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+    <div>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: "white" }}>Platform Overview</h1>
+      <p style={{ fontSize: 14, color: "var(--text-tertiary)", marginTop: 4 }}>
+        Sistem Otomatis untuk Menjadwalkan dan Memposting Konten Instagram.
+      </p>
+    </div>
+    <div style={{ display: "flex", gap: 12 }}>
+      <button className="btn btn-secondary" onClick={handleLogout}>
+        <LogOut style={{ width: 16, height: 16 }} /> Keluar
+      </button>
+      <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}
+        style={{ boxShadow: "0 0 12px rgba(79,70,229,0.3)" }}>
+        <Plus style={{ width: 16, height: 16 }} /> Buat Jadwal
+      </button>
+    </div>
+  </div>
+  <div className="stats-grid">
+```
+
+### 2F. Status Badge Icons di Table Row (Line ~843–848)
+
+**Before:**
+```tsx
+<span className={`status-badge ${s.status}`}>
+  <span className="status-indicator" />
+  {s.status}
+</span>
+```
+
+**After:**
+```tsx
+<span className={`status-badge ${s.status}`}>
+  {s.status === "posted" && <CheckCircle2 style={{ width: 14, height: 14 }} />}
+  {s.status === "failed" && <XCircle style={{ width: 14, height: 14 }} />}
+  {(s.status === "pending" || s.status === "processing") && <Clock style={{ width: 14, height: 14 }} />}
+  {s.status}
+</span>
+```
+
+### 2G. Media Badge di Table Row (Line ~826–830)
+
+**Before:**
+```tsx
+<span className="media-badge">{s.media_type}</span>
+```
+
+**After:**
+```tsx
+<span className="media-badge" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+  {s.media_type === "VIDEO" ? <Video style={{ width: 14, height: 14 }} /> : <ImageIcon style={{ width: 14, height: 14 }} />}
+  {s.media_type}
+</span>
+```
+
+### 2H. Action Buttons Icons (Line ~851–864)
+
+**Before:**
+```tsx
+<button className="btn-icon edit" ...><IconEdit /></button>
+<button className="btn-icon danger" ...><IconTrash /></button>
+```
+
+**After:**
+```tsx
+<button className="btn-icon edit" ...><Edit2 style={{ width: 16, height: 16 }} /></button>
+<button className="btn-icon danger" ...><Trash2 style={{ width: 16, height: 16 }} /></button>
+```
+
+### 2I. Status Badge di Status Dot (globals.css `.status-badge`)
+
+**Before:**
+```css
+.status-badge .status-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+```
+
+**After:** Hapus `.status-indicator` styles (diganti icon di TSX), atau biarkan untuk backward compat.
+
+---
+
+## 3. `login/page.tsx` — Dark Login
+
+Perubahan otomatis dari CSS variables. Tidak perlu ubah kode TSX. Cukup ubah di CSS:
+
+### 3A. Login Button Color
+
+**Before:**
+```css
+.login-btn {
+  background: var(--accent-green);
+}
+.login-btn:hover {
+  background: var(--accent-green-hover);
+}
+```
+
+**After:** _(otomatis berubah karena `--accent-green` sekarang indigo)_
+
+---
+
+## 4. `forgot-password/page.tsx` & `reset-password/page.tsx`
+
+Tidak perlu ubah kode TSX — semua perubahan visual otomatis dari CSS variables.
+
+---
+
+## 5. `layout.tsx` — Minimal Change
+
+**Before:**
+```tsx
+<html lang="id">
+  <body>{children}</body>
+</html>
+```
+
+**After:** _(opsional, tambah class untuk font)_
+```tsx
+<html lang="id">
+  <body style={{ fontFamily: '"Inter", "Helvetica Neue", sans-serif' }}>{children}</body>
+</html>
+```
+
+---
+
+## Ringkasan File yang Diubah
+
+| File | Jenis Perubahan |
+|------|----------------|
+| `globals.css` | Ganti semua CSS variables ke dark theme + minor style updates |
+| `page.tsx` | Tambah Sidebar, ubah Header, import lucide-react icons, ubah layout ke sidebar+main |
+| `login/page.tsx` | Tidak perlu ubah (otomatis dari CSS) |
+| `forgot-password/page.tsx` | Tidak perlu ubah (otomatis dari CSS) |
+| `reset-password/page.tsx` | Tidak perlu ubah (otomatis dari CSS) |
+| `layout.tsx` | Minor: font family |

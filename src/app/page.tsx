@@ -3,6 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthClient } from "@/lib/supabase/auth-client";
+import {
+  LayoutDashboard, CalendarDays, Activity, Settings,
+  Bell, Search, Plus, Aperture, Edit2, Trash2,
+  Image as ImageIcon, Video, CheckCircle2, XCircle,
+  Clock, LogOut, ChevronDown, Menu, X
+} from "lucide-react";
 
 // --- Types ---
 
@@ -539,6 +545,56 @@ function EditScheduleModal({
   );
 }
 
+// --- Sidebar Component ---
+
+function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  return (
+    <>
+      {/* Overlay for mobile */}
+      <div
+        className={`sidebar-overlay ${isOpen ? "visible" : ""}`}
+        onClick={onClose}
+      />
+      <aside className={`dashboard-sidebar ${isOpen ? "open" : ""}`}>
+        {/* Logo */}
+        <div style={{ padding: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: "linear-gradient(135deg, #6366f1, #7c3aed)",
+              display: "flex", alignItems: "center", justifyContent: "center"
+            }}>
+              <Aperture style={{ width: 20, height: 20, color: "white" }} />
+            </div>
+            <span style={{ fontWeight: 700, color: "white", fontSize: 18 }}>AutoPost OS</span>
+          </div>
+          {/* Close button — visible only on mobile/tablet */}
+          <button
+            className="hamburger-btn"
+            onClick={onClose}
+            aria-label="Tutup sidebar"
+          >
+            <X style={{ width: 18, height: 18 }} />
+          </button>
+        </div>
+        {/* Nav */}
+        <nav style={{ padding: "0 16px", flex: 1 }}>
+          <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-tertiary)", marginBottom: 8, marginLeft: 8 }}>Core</p>
+          <a href="#" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "rgba(148,163,184,0.08)", color: "white", borderRadius: 8, textDecoration: "none", fontSize: 14 }}>
+            <LayoutDashboard style={{ width: 16, height: 16 }} /> Dashboard
+          </a>
+          <a href="#" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", color: "var(--text-tertiary)", textDecoration: "none", fontSize: 14, marginTop: 4 }}>
+            <CalendarDays style={{ width: 16, height: 16 }} /> Jadwal Posting
+          </a>
+          <a href="#" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", color: "var(--text-tertiary)", textDecoration: "none", fontSize: 14, marginTop: 4 }}>
+            <Activity style={{ width: 16, height: 16 }} /> Log Aktivitas
+          </a>
+        </nav>
+      </aside>
+    </>
+  );
+}
+
 // --- Main Dashboard ---
 
 export default function Dashboard() {
@@ -559,6 +615,7 @@ export default function Dashboard() {
     message: string;
     type: "success" | "error";
   } | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Auth guard — juga ambil email
   useEffect(() => {
@@ -705,54 +762,82 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="app-container">
+    <div style={{ minHeight: "100vh", background: "var(--bg-primary)", color: "var(--text-secondary)", position: "relative" }}>
+      {/* Background decoration */}
+      <div style={{ position: "fixed", bottom: -192, right: -192, width: 384, height: 384, background: "rgba(99,102,241,0.1)", filter: "blur(120px)", borderRadius: "50%", pointerEvents: "none" }} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
       {/* Header */}
-      <header className="app-header">
-        <div className="header-content">
-          <div className="logo">
-            <div>
-              <h1>Sistem Otomatis Posting Instagram</h1>
-              <span className="sapaan">
-                Selamat Datang, {userEmail || "Pengguna"}!
-              </span>
-              <span> Platform Otomatis untuk Menjadwalkan dan Memposting Konten Instagram</span>
-            </div>
+      <header className="dashboard-header">
+        <button
+          className="hamburger-btn"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Buka menu"
+        >
+          <Menu style={{ width: 20, height: 20 }} />
+        </button>
+        <div className="header-search">
+          <div className="header-search-inner">
+            <Search style={{ width: 16, height: 16, position: "absolute", left: 12, color: "var(--text-tertiary)" }} />
+            <input type="text" placeholder="Search commands..." className="header-search-input" />
           </div>
-          <div className="header-actions">
-            <div className="header-user">
-              <IconUser />
-              <span>{userEmail}</span>
+        </div>
+        <div className="header-right">
+          <button className="header-bell-btn">
+            <Bell style={{ width: 20, height: 20 }} />
+            <span className="header-bell-dot" />
+          </button>
+          <div className="header-avatar-group">
+            <div className="header-avatar">
+              {(userEmail?.[0] || "A").toUpperCase()}
             </div>
-            <div className="header-status">
-              <span className="status-dot" />
-              System Active
+            <div className="header-user-info">
+              <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", lineHeight: 1 }}>{userEmail || "user"}</div>
+              <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>Admin</div>
             </div>
-            <button className="btn-logout" onClick={handleLogout}>
-              Keluar
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-label">Total Jadwal</div>
-          <div className="stat-value">{stats.total}</div>
+      {/* Main Content */}
+      <main className="dashboard-main">
+        <div className="dashboard-title-row">
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: "white" }}>Platform Overview</h1>
+            <p style={{ fontSize: 14, color: "var(--text-tertiary)", marginTop: 4 }}>
+              Sistem Otomatis untuk Menjadwalkan dan Memposting Konten Instagram.
+            </p>
+          </div>
+          <div className="dashboard-title-actions">
+            <button className="btn btn-secondary" onClick={handleLogout}>
+              <LogOut style={{ width: 16, height: 16 }} /> Keluar
+            </button>
+            <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}
+              style={{ boxShadow: "0 0 12px rgba(79,70,229,0.3)" }}>
+              <Plus style={{ width: 16, height: 16 }} /> Buat Jadwal
+            </button>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">Pending</div>
-          <div className="stat-value pending">{stats.pending}</div>
+
+        {/* Stats */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-label">Total Jadwal</div>
+            <div className="stat-value">{stats.total}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Pending</div>
+            <div className="stat-value pending">{stats.pending}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Posted</div>
+            <div className="stat-value posted">{stats.posted}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Failed</div>
+            <div className="stat-value failed">{stats.failed}</div>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">Posted</div>
-          <div className="stat-value posted">{stats.posted}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Failed</div>
-          <div className="stat-value failed">{stats.failed}</div>
-        </div>
-      </div>
 
       {/* Tabs */}
       <div className="tabs">
@@ -789,12 +874,6 @@ export default function Dashboard() {
                 Kelola jadwal auto-posting Instagram
               </p>
             </div>
-            <button
-              className="btn btn-primary"
-              onClick={() => setShowCreateModal(true)}
-            >
-              + Buat Jadwal
-            </button>
           </div>
 
           <div className="table-container">
@@ -824,7 +903,8 @@ export default function Dashboard() {
                   {schedules.map((s) => (
                     <tr key={s.id}>
                       <td>
-                        <span className="media-badge">
+                        <span className="media-badge" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          {s.media_type === "VIDEO" ? <Video style={{ width: 14, height: 14 }} /> : <ImageIcon style={{ width: 14, height: 14 }} />}
                           {s.media_type}
                         </span>
                       </td>
@@ -842,7 +922,9 @@ export default function Dashboard() {
                       </td>
                       <td>
                         <span className={`status-badge ${s.status}`}>
-                          <span className="status-indicator" />
+                          {s.status === "posted" && <CheckCircle2 style={{ width: 14, height: 14 }} />}
+                          {s.status === "failed" && <XCircle style={{ width: 14, height: 14 }} />}
+                          {(s.status === "pending" || s.status === "processing") && <Clock style={{ width: 14, height: 14 }} />}
                           {s.status}
                         </span>
                       </td>
@@ -853,14 +935,14 @@ export default function Dashboard() {
                             title="Edit jadwal"
                             onClick={() => setEditingSchedule(s)}
                           >
-                            <IconEdit />
+                            <Edit2 style={{ width: 16, height: 16 }} />
                           </button>
                           <button
                             className="btn-icon danger"
                             title="Hapus jadwal"
                             onClick={() => handleDelete(s.id)}
                           >
-                            <IconTrash />
+                            <Trash2 style={{ width: 16, height: 16 }} />
                           </button>
                         </div>
                       </td>
@@ -1115,6 +1197,7 @@ export default function Dashboard() {
           onClose={() => setToast(null)}
         />
       )}
+      </main>
     </div>
   );
 }
