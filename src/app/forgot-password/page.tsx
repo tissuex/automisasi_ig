@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
         email,
         {
           // Redirect ke halaman reset-password setelah klik link di email
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/reset-password`,
         }
       );
 
