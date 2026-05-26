@@ -61,8 +61,8 @@ export default function LoginPage() {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1 className="login-title">IG Auto-Poster</h1>
-          <p className="login-subtitle">Masuk untuk mengakses dashboard</p>
+          <h1 className="login-title">Log in to your account</h1>
+          <p className="login-subtitle">Please enter your credentials below</p>
         </div>
 
         <form className="login-form" onSubmit={handleLogin}>
