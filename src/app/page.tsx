@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { getAuthClient } from "@/lib/supabase/auth-client";
 import { useTheme } from "@/lib/use-theme";
 import {
-  LayoutDashboard, CalendarDays, Activity, Settings,
+  LayoutDashboard, CalendarDays, Activity,
   Search, Plus, Aperture, Edit2, Trash2,
   Image as ImageIcon, Video, CheckCircle2, XCircle,
-  Clock, LogOut, ChevronDown, Menu, X, Sun, Moon
+  Clock, LogOut, Menu, X, Sun, Moon,
+  Zap, TrendingUp, AlertTriangle, Sparkles, ArrowUpRight
 } from "lucide-react";
 
 // --- Types ---
@@ -822,193 +823,255 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-label">Total Jadwal</div>
-            <div className="stat-value">{stats.total}</div>
+        {/* Hero Banner */}
+        <div className="hero-banner">
+          <div className="hero-top">
+            <div className="hero-engine-status">
+              <span className="hero-engine-dot" />
+              Automation Engine Aktif
+            </div>
+            {(() => {
+              const next = schedules.filter(s => s.status === "pending").sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
+              if (!next) return null;
+              return <div className="hero-next-post">Posting berikutnya: <strong>{relativeTime(next.scheduled_at)}</strong></div>;
+            })()}
           </div>
-          <div className="stat-card">
-            <div className="stat-label">Pending</div>
-            <div className="stat-value pending">{stats.pending}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Posted</div>
-            <div className="stat-value posted">{stats.posted}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Failed</div>
-            <div className="stat-value failed">{stats.failed}</div>
+          <div className="hero-greeting">
+            <h1>{new Date().getHours() < 12 ? "Selamat Pagi" : new Date().getHours() < 17 ? "Selamat Siang" : "Selamat Malam"}, {userEmail?.split("@")[0] || "Admin"} 👋</h1>
+            <p>Dashboard otomasi Instagram — <strong>{schedules.filter(s => s.status === "pending").length} posting</strong> menunggu dijadwalkan, <strong>{logs.filter(l => l.status === "success").length}</strong> berhasil terkirim.</p>
           </div>
         </div>
 
-      {/* Tabs */}
+        {/* Premium Stats */}
+        <div className="premium-stats">
+          <div className="pstat-card">
+            <div className="pstat-top">
+              <div className="pstat-icon" style={{ background: "rgba(99,102,241,0.1)", color: "#818cf8" }}>
+                <CalendarDays style={{ width: 18, height: 18 }} />
+              </div>
+              <span className="pstat-trend neutral">Total</span>
+            </div>
+            <div className="pstat-value">{stats.total}</div>
+            <div className="pstat-label">Semua Jadwal</div>
+          </div>
+          <div className="pstat-card">
+            <div className="pstat-top">
+              <div className="pstat-icon" style={{ background: "rgba(52,211,153,0.1)", color: "#34d399" }}>
+                <CheckCircle2 style={{ width: 18, height: 18 }} />
+              </div>
+              <span className="pstat-trend up">
+                <ArrowUpRight style={{ width: 12, height: 12 }} /> {stats.total > 0 ? Math.round((stats.posted / stats.total) * 100) : 0}%
+              </span>
+            </div>
+            <div className="pstat-value" style={{ color: "var(--status-posted)" }}>{stats.posted}</div>
+            <div className="pstat-label">Berhasil Dipost</div>
+          </div>
+          <div className="pstat-card">
+            <div className="pstat-top">
+              <div className="pstat-icon" style={{ background: "rgba(251,191,36,0.1)", color: "#fbbf24" }}>
+                <Clock style={{ width: 18, height: 18 }} />
+              </div>
+              <span className="pstat-trend neutral">Antrian</span>
+            </div>
+            <div className="pstat-value" style={{ color: "var(--status-pending)" }}>{stats.pending}</div>
+            <div className="pstat-label">Menunggu Jadwal</div>
+          </div>
+          <div className="pstat-card">
+            <div className="pstat-top">
+              <div className="pstat-icon" style={{ background: "rgba(251,113,133,0.1)", color: "#fb7185" }}>
+                <AlertTriangle style={{ width: 18, height: 18 }} />
+              </div>
+              {stats.failed > 0 && <span className="pstat-trend down">Perlu Aksi</span>}
+            </div>
+            <div className="pstat-value" style={{ color: "var(--status-failed)" }}>{stats.failed}</div>
+            <div className="pstat-label">Gagal</div>
+          </div>
+          <div className="pstat-card">
+            <div className="pstat-top">
+              <div className="pstat-icon" style={{ background: "rgba(99,102,241,0.1)", color: "#818cf8" }}>
+                <TrendingUp style={{ width: 18, height: 18 }} />
+              </div>
+            </div>
+            <div className="pstat-value">{stats.total > 0 ? Math.round((stats.posted / stats.total) * 100) : 0}%</div>
+            <div className="pstat-label">Success Rate</div>
+            <div className="pstat-progress">
+              <div className="pstat-progress-bar" style={{ width: `${stats.total > 0 ? (stats.posted / stats.total) * 100 : 0}%`, background: "linear-gradient(90deg, #6366f1, #34d399)" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* AI Insight Card */}
+        {(stats.failed > 0 || stats.pending > 0 || stats.posted > 0) && (
+          <div className="insight-card">
+            <div className="insight-header">
+              <div className="insight-icon"><Sparkles style={{ width: 16, height: 16 }} /></div>
+              <div>
+                <div className="insight-title">Rekomendasi AI</div>
+                <div className="insight-subtitle">Analisis otomatis berdasarkan data posting Anda</div>
+              </div>
+            </div>
+            <ul className="insight-list">
+              {stats.failed > 0 && (
+                <li className="insight-item">
+                  <span className="insight-item-icon">⚠️</span>
+                  <span>Ada <strong>{stats.failed} posting gagal</strong> — periksa koneksi Instagram API atau validitas media file.</span>
+                </li>
+              )}
+              {stats.posted > 0 && stats.total > 0 && (
+                <li className="insight-item">
+                  <span className="insight-item-icon">📊</span>
+                  <span>Success rate Anda <strong>{Math.round((stats.posted / stats.total) * 100)}%</strong> — {stats.posted / stats.total >= 0.8 ? "performa sangat baik!" : "ada ruang untuk perbaikan."}</span>
+                </li>
+              )}
+              {stats.pending > 0 && (
+                <li className="insight-item">
+                  <span className="insight-item-icon">⏰</span>
+                  <span><strong>{stats.pending} posting</strong> dijadwalkan menunggu. Pastikan cron job aktif berjalan.</span>
+                </li>
+              )}
+              {stats.total === 0 && (
+                <li className="insight-item">
+                  <span className="insight-item-icon">🚀</span>
+                  <span>Belum ada jadwal. Klik <strong>&quot;Buat Jadwal&quot;</strong> untuk mulai otomasi posting.</span>
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+
+        {/* CTA Banner */}
+        <div className="cta-banner">
+          <div>
+            <div className="cta-text">Mulai posting otomatis sekarang</div>
+            <div className="cta-subtext">Upload media, atur jadwal, dan biarkan sistem bekerja untuk Anda.</div>
+          </div>
+          <button className="cta-btn" onClick={() => setShowCreateModal(true)}>
+            <Plus style={{ width: 16, height: 16 }} /> Buat Jadwal Baru
+          </button>
+        </div>
+
+        {/* Two-Column: Table + Feed */}
+        <div className="dash-grid">
+          {/* Left: Enhanced Table */}
+          <div>
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Jadwal Posting Terbaru</h2>
+                <p className="section-subtitle">Data otomatis diperbarui setiap 30 detik</p>
+              </div>
+            </div>
+            <div className="table-container">
+              {loading ? (
+                <div className="table-empty"><div className="spinner" style={{ margin: "0 auto 12px" }} />Memuat data...</div>
+              ) : schedules.length === 0 ? (
+                <div className="table-empty">
+                  <div className="table-empty-icon">Belum ada data</div>
+                  Klik &quot;Buat Jadwal&quot; untuk mulai menjadwalkan posting.
+                </div>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Media</th><th>Caption</th><th>Dijadwalkan</th><th>Status</th><th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schedules.filter((s) => {
+                      if (!searchQuery) return true;
+                      const q = searchQuery.toLowerCase();
+                      return s.caption.toLowerCase().includes(q) || (s.user_email || "").toLowerCase().includes(q) || s.status.toLowerCase().includes(q);
+                    }).slice(0, 10).map((s) => (
+                      <tr key={s.id}>
+                        <td>
+                          <div className="table-media-cell">
+                            <span className="media-badge" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                              {s.media_type === "VIDEO" ? <Video style={{ width: 14, height: 14 }} /> : <ImageIcon style={{ width: 14, height: 14 }} />}
+                              {s.media_type}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="caption-cell" title={s.caption}>{s.caption}</td>
+                        <td className="date-cell">
+                          <div>{formatDate(s.scheduled_at)}</div>
+                          <div style={{ color: "var(--text-tertiary)", fontSize: 11 }}>{relativeTime(s.scheduled_at)}</div>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${s.status}`}>
+                            {s.status === "posted" && <CheckCircle2 style={{ width: 14, height: 14 }} />}
+                            {s.status === "failed" && <XCircle style={{ width: 14, height: 14 }} />}
+                            {s.status === "processing" && <span className="spinner-mini" />}
+                            {(s.status === "pending") && <Clock style={{ width: 14, height: 14 }} />}
+                            {s.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="actions-cell">
+                            <button className="btn-icon edit" title="Edit" onClick={() => setEditingSchedule(s)}><Edit2 style={{ width: 16, height: 16 }} /></button>
+                            <button className="btn-icon danger" title="Hapus" onClick={() => handleDelete(s.id)}><Trash2 style={{ width: 16, height: 16 }} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            {!loading && schedules.length > 10 && (
+              <div style={{ marginTop: 12, textAlign: "center" }}>
+                <a href="/jadwal-posting" style={{ fontSize: 12, color: "var(--accent-green)", textDecoration: "none", fontWeight: 600 }}>
+                  Lihat semua {schedules.length} jadwal →
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Activity Feed */}
+          <div>
+            <div className="feed-card">
+              <div className="feed-header">
+                <div className="feed-header-title">
+                  <Activity style={{ width: 14, height: 14 }} /> Aktivitas Terbaru
+                </div>
+                <div className="feed-live-badge">
+                  <span className="feed-live-dot" /> LIVE
+                </div>
+              </div>
+              {logs.length === 0 ? (
+                <div className="feed-empty">Belum ada aktivitas tercatat.</div>
+              ) : (
+                <div className="feed-list">
+                  {logs.slice(0, 8).map((log) => (
+                    <div key={log.id} className="feed-item">
+                      <div className={`feed-dot ${log.status}`} />
+                      <div className="feed-content">
+                        <div className="feed-action">{log.action}</div>
+                        <div className="feed-message">{log.message || "—"}</div>
+                      </div>
+                      <div className="feed-time">{relativeTime(log.created_at)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {logs.length > 8 && (
+              <div style={{ marginTop: 12, textAlign: "center" }}>
+                <a href="/log-aktivitas" style={{ fontSize: 12, color: "var(--accent-green)", textDecoration: "none", fontWeight: 600 }}>
+                  Lihat semua log →
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+
+      {/* Tabs — Gallery Only */}
       <div className="tabs">
-        <button
-          className={`tab ${tab === "schedules" ? "active" : ""}`}
-          onClick={() => setTab("schedules")}
-        >
-          Jadwal
-        </button>
-        <button
-          className={`tab ${tab === "logs" ? "active" : ""}`}
-          onClick={() => setTab("logs")}
-        >
-          Log Posting
-        </button>
-        <button
-          className={`tab ${tab === "gallery" ? "active" : ""}`}
-          onClick={() => setTab("gallery")}
-        >
+        <button className={`tab ${tab === "gallery" ? "active" : ""}`} onClick={() => setTab("gallery")}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span style={{ width: 14, height: 14, display: "inline-flex" }}><IconGallery /></span>
             Galeri Media
           </span>
         </button>
       </div>
-
-      {/* Tab Content */}
-      {tab === "schedules" && (
-        <>
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Daftar Jadwal Posting</h2>
-              <p className="section-subtitle">
-                Kelola jadwal auto-posting Instagram
-              </p>
-            </div>
-          </div>
-
-          <div className="table-container">
-            {loading ? (
-              <div className="table-empty">
-                <div className="spinner" style={{ margin: "0 auto 12px" }} />
-                Memuat data...
-              </div>
-            ) : schedules.length === 0 ? (
-              <div className="table-empty">
-                <div className="table-empty-icon">Belum ada data</div>
-                Klik &quot;Buat Jadwal&quot; untuk mulai menjadwalkan posting.
-              </div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Media</th>
-                    <th>Caption</th>
-                    <th>Email</th>
-                    <th>Dijadwalkan</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedules.filter((s) => {
-                    if (!searchQuery) return true;
-                    const q = searchQuery.toLowerCase();
-                    return s.caption.toLowerCase().includes(q) || (s.user_email || "").toLowerCase().includes(q) || s.status.toLowerCase().includes(q) || s.media_type.toLowerCase().includes(q);
-                  }).map((s) => (
-                    <tr key={s.id}>
-                      <td>
-                        <span className="media-badge" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          {s.media_type === "VIDEO" ? <Video style={{ width: 14, height: 14 }} /> : <ImageIcon style={{ width: 14, height: 14 }} />}
-                          {s.media_type}
-                        </span>
-                      </td>
-                      <td className="caption-cell" title={s.caption}>
-                        {s.caption}
-                      </td>
-                      <td className="email-cell" title={s.user_email || "—"}>
-                        {s.user_email || "—"}
-                      </td>
-                      <td className="date-cell">
-                        <div>{formatDate(s.scheduled_at)}</div>
-                        <div style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
-                          {relativeTime(s.scheduled_at)}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${s.status}`}>
-                          {s.status === "posted" && <CheckCircle2 style={{ width: 14, height: 14 }} />}
-                          {s.status === "failed" && <XCircle style={{ width: 14, height: 14 }} />}
-                          {(s.status === "pending" || s.status === "processing") && <Clock style={{ width: 14, height: 14 }} />}
-                          {s.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="actions-cell">
-                          <button
-                            className="btn-icon edit"
-                            title="Edit jadwal"
-                            onClick={() => setEditingSchedule(s)}
-                          >
-                            <Edit2 style={{ width: 16, height: 16 }} />
-                          </button>
-                          <button
-                            className="btn-icon danger"
-                            title="Hapus jadwal"
-                            onClick={() => handleDelete(s.id)}
-                          >
-                            <Trash2 style={{ width: 16, height: 16 }} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </>
-      )}
-
-      {tab === "logs" && (
-        <>
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Log Aktivitas</h2>
-              <p className="section-subtitle">
-                Riwayat proses posting (auto-refresh 30 detik)
-              </p>
-            </div>
-            <button className="btn btn-secondary" onClick={fetchLogs}>
-              Refresh
-            </button>
-          </div>
-
-          <div className="table-container">
-            {loading ? (
-              <div className="table-empty">
-                <div className="spinner" style={{ margin: "0 auto 12px" }} />
-                Memuat log...
-              </div>
-            ) : logs.length === 0 ? (
-              <div className="table-empty">
-                <div className="table-empty-icon">Belum ada log</div>
-                Log akan muncul setelah cron berjalan.
-              </div>
-            ) : (
-              <div className="log-list">
-                {logs.map((log) => (
-                  <div key={log.id} className="log-item">
-                    <span className={`status-badge ${log.status}`}>
-                      <span className="status-indicator" />
-                      {log.status}
-                    </span>
-                    <span className="log-action">{log.action}</span>
-                    <span className="log-message">
-                      {log.message || "\u2014"}
-                    </span>
-                    <span className="log-time">
-                      {formatDate(log.created_at)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
 
       {/* Gallery Tab */}
       {tab === "gallery" && (
